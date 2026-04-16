@@ -1,0 +1,101 @@
+[
+  {
+    "id": 1765421652377,
+    "title": "線性代數",
+    "category": "課程",
+    "content": "矩陣與反矩陣",
+    "value": "2",
+    "date": "2025-11-14",
+    "tradeDetails": [],
+    "createdAt": "2025-12-11T02:54:12.377Z",
+    "updatedAt": "2025-12-11T02:54:12.377Z"
+  },
+  {
+    "id": 1765421690139,
+    "title": "跑步",
+    "category": "運動",
+    "content": "",
+    "value": "1.5",
+    "date": "",
+    "tradeDetails": [],
+    "createdAt": "2025-12-11T02:54:50.139Z",
+    "updatedAt": "2025-12-11T02:54:50.139Z"
+  },
+  {
+    "id": 1765951460009,
+    "title": "皮拉",
+    "category": "運動",
+    "content": "簡單伸展",
+    "value": "1",
+    "date": "2025-12-16",
+    "tradeDetails": [],
+    "createdAt": "2025-12-17T06:04:20.009Z",
+    "updatedAt": "2025-12-17T06:04:20.009Z"
+  },
+  {
+    "id": 1765954960526,
+    "title": "線性代數",
+    "category": "課程",
+    "content": "線性方程1",
+    "value": "0.5",
+    "date": "2025-12-16",
+    "tradeDetails": [],
+    "createdAt": "2025-12-17T07:02:40.526Z",
+    "updatedAt": "2025-12-17T07:02:40.526Z"
+  },
+  {
+    "id": 1765955044909,
+    "title": "跑步",
+    "category": "運動",
+    "content": "跑步",
+    "value": "0.5",
+    "date": "2025-12-17",
+    "tradeDetails": [],
+    "createdAt": "2025-12-17T07:04:04.909Z",
+    "updatedAt": "2025-12-17T07:04:04.909Z"
+  },
+  {
+    "id": 1765955294642,
+    "title": "黃金",
+    "category": "交易",
+    "content": "",
+    "value": "",
+    "date": "",
+    "tradeDetails": [
+      {
+        "datetime": "1217",
+        "product": "gold",
+        "timeframe": "M15/H1",
+        "snrType": "SBR",
+        "emaOrder": "5~60",
+        "emaFit": "中偏高",
+        "kbarPattern": "吞沒",
+        "dxyDiv": "無"
+      }
+    ],
+    "createdAt": "2025-12-17T07:08:14.642Z",
+    "updatedAt": "2025-12-17T07:08:14.642Z"
+  },
+  {
+    "id": 1765955383356,
+    "title": "黃金",
+    "category": "交易",
+    "content": "",
+    "value": "",
+    "date": "",
+    "tradeDetails": [
+      {
+        "datetime": "1218",
+        "product": "gold",
+        "timeframe": "M15/H1",
+        "snrType": "SBR",
+        "emaOrder": "5~60",
+        "emaFit": "中偏高",
+        "kbarPattern": "吞沒",
+        "dxyDiv": "沒檢查"
+      }
+    ],
+    "createdAt": "2025-12-17T07:09:43.356Z",
+    "updatedAt": "2025-12-17T07:09:43.356Z"
+  }
+]

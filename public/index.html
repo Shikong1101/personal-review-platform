@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>個人紀錄回顧平台</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h1>個人紀錄回顧平台</h1>
+
+  <!-- 選擇分類 -->
+  <section class="template-section">
+    <h2>選擇紀錄類型</h2>
+    <div class="template-buttons">
+      <button type="button" data-template="study">課程學習</button>
+      <button type="button" data-template="workout">運動訓練</button>
+      <button type="button" data-template="stock">股票紀錄</button>
+      <button type="button" data-template="trade">交易紀錄</button>
+      <button type="button" data-template="custom">自訂</button>
+    </div>
+    <p id="templateHint" class="template-hint">請先點上方分類按鈕開始。</p>
+  </section>
+
+  <!-- 主面板：預設隱藏，選分類後才顯示 -->
+  <main id="mainPanel" class="hidden">
+
+    <!-- 新增紀錄 -->
+    <section class="form-section">
+      <h2>新增紀錄</h2>
+
+     <!-- 只給交易用的提醒（預設隱藏） -->
+        <div id="tradeReminder" class="hidden" style="color:#d93025; font-weight:700; margin:8px 0;">
+        📌 請記得先把交易畫面截圖，並以「日期 + 品種」命名後保存。
+        </div>
+
+
+      <form id="recordForm">
+        <div class="form-row">
+          <label for="title">標題：</label>
+          <input id="title" name="title" required />
+        </div>
+
+        <div class="form-row">
+          <label for="category">類別：</label>
+          <input id="category" name="category" />
+        </div>
+
+        <div class="form-row">
+          <label for="content">內容：</label>
+          <textarea id="content" name="content" rows="5"></textarea>
+        </div>
+
+        <div class="form-row">
+          <label for="value">數值：</label>
+          <input id="value" name="value" />
+        </div>
+
+        <div class="form-row">
+          <label for="date">日期：</label>
+          <input id="date" name="date" type="date" />
+        </div>
+
+        <!-- 交易表格區塊（只有 trade 模板顯示） -->
+        <section id="tradeTableSection" class="hidden">
+          <div class="trade-table-wrap">
+            <div class="trade-table-toolbar">
+              <button type="button" id="addTradeRowBtn">新增一列</button>
+            </div>
+
+            <table id="tradeTable">
+              <thead>
+                <tr>
+                  <th>日期時間</th>
+                  <th>商品</th>
+                  <th>進場參考週期</th>
+                  <th>SNR 類型</th>
+                  <th>EMA 排列</th>
+                  <th>EMA 貼合程度</th>
+                  <th>K棒型態</th>
+                  <th>DXY 背離</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- JS 動態塞列 -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <button type="submit">新增紀錄</button>
+        <div id="formStatus" class="form-status"></div>
+      </form>
+    </section>
+
+    <!-- 記錄列表 -->
+    <section class="list-section">
+      <h2>記錄列表</h2>
+      <div id="recordList"></div>
+    </section>
+
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
