@@ -4,8 +4,9 @@ const path = require('path');
 
 const app = express();
 const PORT = 3000;
-
 const DB_PATH = path.join(__dirname, 'db.json');
+
+/* ===================== 資料庫（JSON 檔） ===================== */
 
 function loadDB() {
   try {
@@ -25,18 +26,20 @@ function saveDB(data) {
 
 let records = loadDB();
 
+/* ===================== Middleware ===================== */
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// 前端靜態檔
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 取得所有紀錄
+/* ===================== API ===================== */
+
+// GET /records — 取得所有紀錄
 app.get('/records', (req, res) => {
   res.json(records);
 });
 
-// 新增紀錄（支援 tradeDetails）
+// POST /records — 新增紀錄
 app.post('/records', (req, res) => {
   const { title, category, content, value, date, tradeDetails } = req.body;
 
@@ -47,15 +50,15 @@ app.post('/records', (req, res) => {
   const now = new Date().toISOString();
 
   const newRecord = {
-    id: Date.now(),
-    title: String(title).trim(),
-    category: category ? String(category).trim() : '',
-    content: content ? String(content) : '',
-    value: value ? String(value) : '',
-    date: date ? String(date) : '',
+    id:           Date.now(),
+    title:        String(title).trim(),
+    category:     category     ? String(category).trim() : '',
+    content:      content      ? String(content)         : '',
+    value:        value        ? String(value)            : '',
+    date:         date         ? String(date)             : '',
     tradeDetails: Array.isArray(tradeDetails) ? tradeDetails : [],
-    createdAt: now,
-    updatedAt: now,
+    createdAt:    now,
+    updatedAt:    now,
   };
 
   records.push(newRecord);
@@ -64,10 +67,11 @@ app.post('/records', (req, res) => {
   res.status(201).json(newRecord);
 });
 
-// 刪除紀錄
+// DELETE /records/:id — 刪除指定紀錄
 app.delete('/records/:id', (req, res) => {
-  const id = Number(req.params.id);
+  const id  = Number(req.params.id);
   const idx = records.findIndex(r => r.id === id);
+
   if (idx === -1) {
     return res.status(404).json({ error: '找不到這筆紀錄' });
   }
@@ -78,6 +82,8 @@ app.delete('/records/:id', (req, res) => {
   res.json(deleted);
 });
 
+/* ===================== 啟動 ===================== */
+
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server running → http://localhost:${PORT}`);
 });
