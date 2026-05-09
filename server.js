@@ -8,7 +8,7 @@ const PORT = 3000;
 app.use(express.static(path.join(__dirname, 'public')));
 
 // 所有路由都回傳 index.html（SPA 支援）
-app.get('*', (req, res) => {
+app.get('/{*splat}', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
