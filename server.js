@@ -1,88 +1,16 @@
 const express = require('express');
-const fs = require('fs');
-const path = require('path');
+const path    = require('path');
 
-const app = express();
+const app  = express();
 const PORT = 3000;
-const DB_PATH = path.join(__dirname, 'db.json');
 
-/* ===================== 資料庫（JSON 檔） ===================== */
-
-function loadDB() {
-  try {
-    if (!fs.existsSync(DB_PATH)) return [];
-    const text = fs.readFileSync(DB_PATH, 'utf8');
-    const data = JSON.parse(text || '[]');
-    return Array.isArray(data) ? data : [];
-  } catch (err) {
-    console.error('讀取 db.json 失敗：', err);
-    return [];
-  }
-}
-
-function saveDB(data) {
-  fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), 'utf8');
-}
-
-let records = loadDB();
-
-/* ===================== Middleware ===================== */
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// 靜態檔案（前端）
 app.use(express.static(path.join(__dirname, 'public')));
 
-/* ===================== API ===================== */
-
-// GET /records — 取得所有紀錄
-app.get('/records', (req, res) => {
-  res.json(records);
+// 所有路由都回傳 index.html（SPA 支援）
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
-
-// POST /records — 新增紀錄
-app.post('/records', (req, res) => {
-  const { title, category, content, value, date, tradeDetails } = req.body;
-
-  if (!title || String(title).trim() === '') {
-    return res.status(400).json({ error: 'title 必填' });
-  }
-
-  const now = new Date().toISOString();
-
-  const newRecord = {
-    id:           Date.now(),
-    title:        String(title).trim(),
-    category:     category     ? String(category).trim() : '',
-    content:      content      ? String(content)         : '',
-    value:        value        ? String(value)            : '',
-    date:         date         ? String(date)             : '',
-    tradeDetails: Array.isArray(tradeDetails) ? tradeDetails : [],
-    createdAt:    now,
-    updatedAt:    now,
-  };
-
-  records.push(newRecord);
-  saveDB(records);
-
-  res.status(201).json(newRecord);
-});
-
-// DELETE /records/:id — 刪除指定紀錄
-app.delete('/records/:id', (req, res) => {
-  const id  = Number(req.params.id);
-  const idx = records.findIndex(r => r.id === id);
-
-  if (idx === -1) {
-    return res.status(404).json({ error: '找不到這筆紀錄' });
-  }
-
-  const deleted = records.splice(idx, 1)[0];
-  saveDB(records);
-
-  res.json(deleted);
-});
-
-/* ===================== 啟動 ===================== */
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running → http://localhost:${PORT}`);

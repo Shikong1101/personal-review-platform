@@ -13,124 +13,136 @@
 
   <header class="site-header">
     <h1>個人紀錄回顧平台</h1>
+    <div id="authArea" class="auth-area">
+      <div id="userInfo" class="user-info hidden">
+        <span id="userName"></span>
+        <button id="logoutBtn" class="btn-logout">登出</button>
+      </div>
+    </div>
   </header>
 
-  <!-- 選擇分類 -->
-  <section class="template-section card">
-    <h2 class="section-title">選擇紀錄類型</h2>
-    <div class="template-buttons">
-      <button type="button" data-template="study">📚 課程學習</button>
-      <button type="button" data-template="workout">🏃 運動訓練</button>
-      <button type="button" data-template="stock">📈 股票紀錄</button>
-      <button type="button" data-template="trade">💹 交易紀錄</button>
-      <button type="button" data-template="custom">✏️ 自訂</button>
+  <!-- 未登入畫面 -->
+  <div id="loginPrompt" class="login-prompt">
+    <div class="login-box">
+      <div class="login-icon">📋</div>
+      <h2>個人紀錄回顧平台</h2>
+      <p>請先登入 Google 帳號來存取你的紀錄。</p>
+      <button id="loginBtnMain" class="btn-google-main">🔑 使用 Google 登入</button>
     </div>
-    <p id="templateHint" class="template-hint">請先點上方分類按鈕開始。</p>
-  </section>
+  </div>
 
-  <!-- 主面板：選分類後才顯示 -->
-  <main id="mainPanel" class="hidden">
+  <!-- 主要內容（登入後顯示） -->
+  <div id="appContent" class="hidden">
 
-    <!-- 交易品種子分類 Tab（只有 trade 模板顯示） -->
-    <section id="tradeProductSection" class="hidden card">
-      <h2 class="section-title">選擇交易品種</h2>
-      <div class="product-tabs">
-        <button type="button" class="product-tab active" data-product="GOLD">黃金 GOLD</button>
-        <button type="button" class="product-tab" data-product="USTEC100">那斯達克 USTEC100</button>
-        <button type="button" class="product-tab" data-product="EURUSD">歐美 EURUSD</button>
+    <section class="template-section card">
+      <h2 class="section-title">選擇紀錄類型</h2>
+      <div class="template-buttons">
+        <button type="button" data-template="study">📚 課程學習</button>
+        <button type="button" data-template="workout">🏃 運動訓練</button>
+        <button type="button" data-template="stock">📈 股票紀錄</button>
+        <button type="button" data-template="trade">💹 交易紀錄</button>
+        <button type="button" data-template="custom">✏️ 自訂</button>
       </div>
+      <p id="templateHint" class="template-hint">請先點上方分類按鈕開始。</p>
     </section>
 
-    <!-- 新增紀錄 -->
-    <section class="form-section card">
-      <h2 class="section-title" id="recordFormTitle">新增紀錄</h2>
+    <main id="mainPanel" class="hidden">
 
-      <!-- 交易提醒（只有 trade 顯示） -->
-      <div id="tradeReminder" class="trade-reminder hidden">
-        📌 請記得先把交易畫面截圖，並以「日期 + 品種」命名後保存。
-      </div>
+      <!-- 交易品種 Tab -->
+      <section id="tradeProductSection" class="hidden card">
+        <h2 class="section-title">選擇交易品種</h2>
+        <div class="product-tabs">
+          <button type="button" class="product-tab active" data-product="GOLD">黃金 GOLD</button>
+          <button type="button" class="product-tab" data-product="USTEC100">那斯達克 USTEC100</button>
+          <button type="button" class="product-tab" data-product="EURUSD">歐美 EURUSD</button>
+        </div>
+      </section>
 
-      <form id="recordForm" novalidate>
-        <div class="form-row">
-          <label for="title">標題</label>
-          <input id="title" name="title" required placeholder="輸入標題"/>
+      <!-- 新增紀錄 -->
+      <section class="form-section card">
+        <h2 class="section-title">新增紀錄</h2>
+
+        <div id="tradeReminder" class="trade-reminder hidden">
+          📌 請記得先把交易畫面截圖，並以「日期 + 品種」命名後保存。
         </div>
 
-        <div class="form-row">
-          <label for="category">類別</label>
-          <input id="category" name="category" placeholder="輸入類別"/>
-        </div>
-
-        <div class="form-row">
-          <label for="content">內容</label>
-          <textarea id="content" name="content" rows="4"></textarea>
-        </div>
-
-        <div class="form-row">
-          <label for="value">數值</label>
-          <input id="value" name="value" placeholder="例如時數、金額"/>
-        </div>
-
-        <div class="form-row" id="dateRow">
-          <label for="date">日期</label>
-          <input id="date" name="date" type="date"/>
-        </div>
-
-        <!-- 交易表格區塊（只有 trade 模板顯示） -->
-        <section id="tradeTableSection" class="hidden">
-          <div class="trade-table-toolbar">
-            <span class="trade-table-label">交易明細</span>
-            <button type="button" id="addTradeRowBtn" class="btn-secondary">＋ 新增一列</button>
+        <form id="recordForm" novalidate>
+          <div class="form-row">
+            <label for="title">標題</label>
+            <input id="title" name="title" required placeholder="輸入標題"/>
           </div>
-          <div class="trade-table-wrap">
-            <table id="tradeTable">
-              <thead>
-                <tr>
-                  <th>日期時間</th>
-                  <th>商品</th>
-                  <th>進場週期</th>
-                  <th>SNR 類型</th>
-                  <th>EMA 排列</th>
-                  <th>EMA 貼合</th>
-                  <th>K棒型態</th>
-                  <th>DXY 背離</th>
-                  <th>結果</th>
-                  <th>盈虧（點）</th>
-                  <th>操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                <!-- 動態產生 -->
-              </tbody>
-            </table>
+          <div class="form-row">
+            <label for="category">類別</label>
+            <input id="category" name="category" placeholder="輸入類別"/>
           </div>
-        </section>
+          <div class="form-row">
+            <label for="content">內容</label>
+            <textarea id="content" name="content" rows="4"></textarea>
+          </div>
+          <div class="form-row">
+            <label for="value">數值</label>
+            <input id="value" name="value" placeholder="例如時數、金額"/>
+          </div>
+          <div class="form-row" id="dateRow">
+            <label for="date">日期</label>
+            <input id="date" name="date" type="date"/>
+          </div>
 
-        <div class="form-footer">
-          <button type="submit" class="btn-primary">新增紀錄</button>
-          <div id="formStatus" class="form-status"></div>
+          <!-- 交易表格 -->
+          <section id="tradeTableSection" class="hidden">
+            <div class="trade-table-toolbar">
+              <span class="trade-table-label">交易明細</span>
+              <button type="button" id="addTradeRowBtn" class="btn-secondary">＋ 新增一列</button>
+            </div>
+            <div class="trade-table-wrap">
+              <table id="tradeTable">
+                <thead>
+                  <tr>
+                    <th>日期時間</th>
+                    <th>商品</th>
+                    <th>進場週期</th>
+                    <th>SNR 類型</th>
+                    <th>EMA 排列</th>
+                    <th>EMA 貼合</th>
+                    <th>K棒型態</th>
+                    <th>DXY 背離</th>
+                    <th>結果</th>
+                    <th>盈虧（點）</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </section>
+
+          <div class="form-footer">
+            <button type="submit" class="btn-primary">新增紀錄</button>
+            <div id="formStatus" class="form-status"></div>
+          </div>
+        </form>
+      </section>
+
+      <!-- 記錄列表 -->
+      <section class="list-section card">
+        <div class="list-header">
+          <h2 class="section-title">記錄列表</h2>
+          <div id="tradeStats" class="trade-stats hidden">
+            <span class="stat-item" id="statTotal">總計：0 筆</span>
+            <span class="stat-item stat-win" id="statWin">勝：0</span>
+            <span class="stat-item stat-lose" id="statLose">敗：0</span>
+            <span class="stat-item stat-rate" id="statRate">勝率：—</span>
+            <span class="stat-item stat-pnl" id="statPnl">累計盈虧：—</span>
+          </div>
         </div>
-      </form>
-    </section>
+        <div id="recordList"></div>
+      </section>
 
-    <!-- 記錄列表 -->
-    <section class="list-section card">
-      <div class="list-header">
-        <h2 class="section-title">記錄列表</h2>
-        <!-- 交易統計（只有 trade 顯示） -->
-        <div id="tradeStats" class="trade-stats hidden">
-          <span class="stat-item" id="statTotal">總計：0 筆</span>
-          <span class="stat-item stat-win" id="statWin">勝：0</span>
-          <span class="stat-item stat-lose" id="statLose">敗：0</span>
-          <span class="stat-item stat-rate" id="statRate">勝率：—</span>
-          <span class="stat-item stat-pnl" id="statPnl">累計盈虧：—</span>
-        </div>
-      </div>
-      <div id="recordList"></div>
-    </section>
+    </main>
+  </div>
 
-  </main>
-
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://apis.google.com/js/api.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
