@@ -109,6 +109,13 @@ function setupTokenClient() {
   document.getElementById('logoutBtn')?.addEventListener('click', () => {
     google.accounts.oauth2.revoke(accessToken, () => {
       accessToken = null; driveFileId = null; records = [];
+      currentTemplate = null;
+
+      // 重置 UI 狀態
+      document.getElementById('mainPanel')?.classList.add('hidden');
+      document.querySelectorAll('[data-template]').forEach(btn => btn.classList.remove('active'));
+      document.getElementById('templateHint').textContent = '請先點上方分類按鈕開始。';
+
       showLoginPrompt();
     });
   });
@@ -135,7 +142,9 @@ async function onLoginSuccess() {
   } catch (_) {}
 
   await loadFromDrive();
-  if (currentTemplate) loadRecords();
+  if (currentTemplate) {
+    applyTemplate(currentTemplate);
+  }
 }
 
 /* ===================== Google Drive ===================== */
