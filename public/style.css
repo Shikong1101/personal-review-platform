@@ -574,3 +574,33 @@ select.result-draw { color: var(--draw); font-weight: 700; }
   max-width: 960px;
   margin: 0 auto;
 }
+/* ===================== 可編輯大表格 ===================== */
+#tradeEditTable td input,
+#tradeEditTable td select {
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-size: 13px;
+  width: 100%;
+  min-width: 70px;
+  transition: border-color .15s, background .15s;
+}
+ 
+#tradeEditTable td input:hover,
+#tradeEditTable td select:hover {
+  border-color: var(--border);
+  background: var(--surface);
+}
+ 
+#tradeEditTable td input:focus,
+#tradeEditTable td select:focus {
+  border-color: var(--accent);
+  background: var(--surface);
+  box-shadow: 0 0 0 2px rgba(37,99,235,.1);
+  outline: none;
+}
+ 
+#tradeEditTable tbody tr:hover {
+  background: #f8fafc;
+}

@@ -62,36 +62,44 @@
       <section class="form-section card">
         <h2 class="section-title">新增紀錄</h2>
 
+        <!-- 交易提醒 -->
         <div id="tradeReminder" class="trade-reminder hidden">
           📌 請記得先把交易畫面截圖，並以「日期 + 品種」命名後保存。
         </div>
 
         <form id="recordForm" novalidate>
-          <div class="form-row">
-            <label for="title">標題</label>
-            <input id="title" name="title" required placeholder="輸入標題"/>
+
+          <!-- 一般模板欄位（交易時隱藏） -->
+          <div id="generalFields">
+            <div class="form-row">
+              <label for="title">標題</label>
+              <input id="title" name="title" placeholder="輸入標題"/>
+            </div>
+            <div class="form-row">
+              <label for="category">類別</label>
+              <input id="category" name="category" placeholder="輸入類別"/>
+            </div>
+            <div class="form-row">
+              <label for="value">數值</label>
+              <input id="value" name="value" placeholder="例如時數、金額"/>
+            </div>
           </div>
-          <div class="form-row">
-            <label for="category">類別</label>
-            <input id="category" name="category" placeholder="輸入類別"/>
-          </div>
+
+          <!-- 內容（所有模板都有，交易用來寫整體想法） -->
           <div class="form-row">
             <label for="content">內容</label>
-            <textarea id="content" name="content" rows="4"></textarea>
+            <textarea id="content" name="content" rows="3"></textarea>
           </div>
-          <div class="form-row">
-            <label for="value">數值</label>
-            <input id="value" name="value" placeholder="例如時數、金額"/>
-          </div>
+
           <div class="form-row" id="dateRow">
             <label for="date">日期</label>
             <input id="date" name="date" type="date"/>
           </div>
 
-          <!-- 交易表格 -->
+          <!-- 交易新增列（只有 trade 顯示） -->
           <section id="tradeTableSection" class="hidden">
             <div class="trade-table-toolbar">
-              <span class="trade-table-label">交易明細</span>
+              <span class="trade-table-label">新增交易明細</span>
               <button type="button" id="addTradeRowBtn" class="btn-secondary">＋ 新增一列</button>
             </div>
             <div class="trade-table-wrap">
@@ -99,7 +107,6 @@
                 <thead>
                   <tr>
                     <th>日期時間</th>
-                    <th>商品</th>
                     <th>進場週期</th>
                     <th>SNR 類型</th>
                     <th>EMA 排列</th>
@@ -135,6 +142,29 @@
             <span class="stat-item stat-pnl" id="statPnl">累計盈虧：—</span>
           </div>
         </div>
+        <!-- 交易：可編輯大表格 -->
+        <div id="tradeListTable" class="hidden">
+          <div class="trade-table-wrap">
+            <table id="tradeEditTable">
+              <thead>
+                <tr>
+                  <th>日期時間</th>
+                  <th>進場週期</th>
+                  <th>SNR 類型</th>
+                  <th>EMA 排列</th>
+                  <th>EMA 貼合</th>
+                  <th>K棒型態</th>
+                  <th>DXY 背離</th>
+                  <th>結果</th>
+                  <th>盈虧（點）</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="tradeEditBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <!-- 非交易：卡片列表 -->
         <div id="recordList"></div>
       </section>
 

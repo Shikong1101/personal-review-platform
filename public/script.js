@@ -3,7 +3,6 @@
    資料儲存：Google Drive（records.json）
    ===================================================================== */
 
-/* ===================== 設定 ===================== */
 const CLIENT_ID = '303723952901-b5aq1p5o5h7kk6ja5dgsc7556mukq75a.apps.googleusercontent.com';
 const SCOPES    = 'https://www.googleapis.com/auth/drive.appdata';
 const FILE_NAME = 'records.json';
@@ -37,10 +36,10 @@ const TEMPLATES = {
   trade: {
     name: '交易紀錄',
     defaultCategory: '交易',
-    titlePlaceholder: '這組交易的備註（可留空）',
+    titlePlaceholder: '',
     contentPlaceholder: '這一組交易的整體想法與情緒（可留空）。',
-    valuePlaceholder: '本組整體盈虧（點數或金額）',
-    hint: '交易模板：先選品種，再用下方表格記錄每一單的細節。'
+    valuePlaceholder: '',
+    hint: '交易模板：先選品種，用下方表格記錄每一單明細。'
   },
   custom: {
     name: '自訂',
@@ -56,10 +55,10 @@ const TEMPLATES = {
 let currentTemplate     = null;
 let currentTradeProduct = 'GOLD';
 let accessToken         = null;
-let driveFileId         = null; // records.json 在 Drive 的 file ID
-let records             = [];   // 記憶體內的資料
+let driveFileId         = null;
+let records             = [];
 
-/* ===================== 工具函式 ===================== */
+/* ===================== 工具 ===================== */
 function showStatus(message, isError = false) {
   const el = document.getElementById('formStatus');
   if (!el) return;
@@ -78,13 +77,12 @@ function escapeHTML(str = '') {
 }
 
 function parsePnl(val) {
-  const n = parseFloat(String(val).trim());
+  const n = parseFloat(String(val ?? '').trim());
   return isNaN(n) ? null : n;
 }
 
 /* ===================== Google 登入 ===================== */
 function initGoogleAuth() {
-  // 等 GSI script 載入完成
   const waitGSI = setInterval(() => {
     if (window.google && window.google.accounts) {
       clearInterval(waitGSI);
@@ -98,10 +96,7 @@ function setupTokenClient() {
     client_id: CLIENT_ID,
     scope: SCOPES,
     callback: async (tokenResponse) => {
-      if (tokenResponse.error) {
-        console.error('授權失敗：', tokenResponse);
-        return;
-      }
+      if (tokenResponse.error) { console.error('授權失敗：', tokenResponse); return; }
       accessToken = tokenResponse.access_token;
       onLoginSuccess();
     }
@@ -113,9 +108,7 @@ function setupTokenClient() {
 
   document.getElementById('logoutBtn')?.addEventListener('click', () => {
     google.accounts.oauth2.revoke(accessToken, () => {
-      accessToken = null;
-      driveFileId = null;
-      records = [];
+      accessToken = null; driveFileId = null; records = [];
       showLoginPrompt();
     });
   });
@@ -132,27 +125,22 @@ async function onLoginSuccess() {
   document.getElementById('appContent')?.classList.remove('hidden');
   document.getElementById('userInfo')?.classList.remove('hidden');
 
-  // 取得使用者名稱
   try {
-    const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+    const res  = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
       headers: { Authorization: `Bearer ${accessToken}` }
     });
     const info = await res.json();
-    const nameEl = document.getElementById('userName');
-    if (nameEl) nameEl.textContent = info.name || info.email || '';
+    const el   = document.getElementById('userName');
+    if (el) el.textContent = info.name || info.email || '';
   } catch (_) {}
 
-  // 載入 Drive 資料
   await loadFromDrive();
   if (currentTemplate) loadRecords();
 }
 
-/* ===================== Google Drive 讀寫 ===================== */
-
-/** 找 records.json 的 file ID，找不到就建立 */
+/* ===================== Google Drive ===================== */
 async function findOrCreateFile() {
-  // 先搜尋
-  const searchRes = await fetch(
+  const searchRes  = await fetch(
     `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='${FILE_NAME}'&fields=files(id,name)`,
     { headers: { Authorization: `Bearer ${accessToken}` } }
   );
@@ -160,27 +148,18 @@ async function findOrCreateFile() {
 
   if (searchData.files && searchData.files.length > 0) {
     driveFileId = searchData.files[0].id;
-    return driveFileId;
+    return;
   }
 
-  // 不存在就建立空的
-  const createRes = await fetch('https://www.googleapis.com/drive/v3/files', {
+  const createRes  = await fetch('https://www.googleapis.com/drive/v3/files', {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      name: FILE_NAME,
-      parents: ['appDataFolder']
-    })
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: FILE_NAME, parents: ['appDataFolder'] })
   });
   const createData = await createRes.json();
   driveFileId = createData.id;
-  return driveFileId;
 }
 
-/** 從 Drive 讀取所有資料 */
 async function loadFromDrive() {
   try {
     showStatus('載入中…');
@@ -205,27 +184,20 @@ async function loadFromDrive() {
   }
 }
 
-/** 把目前 records 存回 Drive */
 async function saveToDrive() {
   if (!driveFileId) await findOrCreateFile();
-
-  const content = JSON.stringify(records, null, 2);
-  const blob = new Blob([content], { type: 'application/json' });
-
+  const blob = new Blob([JSON.stringify(records, null, 2)], { type: 'application/json' });
   await fetch(
     `https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`,
     {
       method: 'PATCH',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      },
+      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
       body: blob
     }
   );
 }
 
-/* ===================== 交易表格 ===================== */
+/* ===================== 交易表格（新增用） ===================== */
 function addTradeRow(data = {}) {
   const tbody = document.querySelector('#tradeTable tbody');
   if (!tbody) return;
@@ -233,8 +205,7 @@ function addTradeRow(data = {}) {
   const result = data.result || '';
   const tr = document.createElement('tr');
   tr.innerHTML = `
-    <td><input type="text" class="trade-datetime" value="${escapeHTML(data.datetime || '')}" placeholder="1217 14:20"></td>
-    <td><input type="text" class="trade-product" value="${escapeHTML(data.product || currentTradeProduct)}" placeholder="${currentTradeProduct}"></td>
+    <td><input type="text" class="trade-datetime" value="${escapeHTML(data.datetime || '')}" placeholder="0326 2140"></td>
     <td><input type="text" class="trade-timeframe" value="${escapeHTML(data.timeframe || '')}" placeholder="M15 / H1"></td>
     <td><input type="text" class="trade-snr" value="${escapeHTML(data.snrType || '')}" placeholder="SBR / RBS"></td>
     <td><input type="text" class="trade-ema-order" value="${escapeHTML(data.emaOrder || '')}" placeholder="5>20>60"></td>
@@ -269,18 +240,22 @@ function collectTradeDetails() {
   if (!tbody) return [];
 
   return Array.from(tbody.querySelectorAll('tr')).map(tr => {
-    const get = sel => tr.querySelector(sel)?.value.trim() || '';
+    const get    = sel => tr.querySelector(sel)?.value.trim() || '';
     const pnlRaw = tr.querySelector('.trade-pnl')?.value.trim() || '';
     const row = {
-      datetime: get('.trade-datetime'), product: get('.trade-product'),
-      timeframe: get('.trade-timeframe'), snrType: get('.trade-snr'),
-      emaOrder: get('.trade-ema-order'), emaFit: get('.trade-ema-fit'),
-      kbarPattern: get('.trade-kbar'), dxyDiv: get('.trade-dxy'),
-      result: get('.trade-result'),
-      pnl: pnlRaw !== '' ? parseFloat(pnlRaw) : null,
+      datetime:    get('.trade-datetime'),
+      product:     currentTradeProduct,
+      timeframe:   get('.trade-timeframe'),
+      snrType:     get('.trade-snr'),
+      emaOrder:    get('.trade-ema-order'),
+      emaFit:      get('.trade-ema-fit'),
+      kbarPattern: get('.trade-kbar'),
+      dxyDiv:      get('.trade-dxy'),
+      result:      get('.trade-result'),
+      pnl:         pnlRaw !== '' ? parseFloat(pnlRaw) : null,
     };
-    const vals = [row.datetime, row.product, row.timeframe, row.snrType,
-                  row.emaOrder, row.emaFit, row.kbarPattern, row.dxyDiv, row.result];
+    const vals = [row.datetime, row.timeframe, row.snrType, row.emaOrder,
+                  row.emaFit, row.kbarPattern, row.dxyDiv, row.result];
     if (vals.every(v => v === '') && row.pnl === null) return null;
     return row;
   }).filter(Boolean);
@@ -295,27 +270,38 @@ function applyTemplate(name) {
   document.getElementById('templateHint').textContent = t.hint;
 
   const isTrade = name === 'trade';
+
+  // 交易專屬顯示/隱藏
   document.getElementById('tradeProductSection')?.classList.toggle('hidden', !isTrade);
   document.getElementById('tradeTableSection')?.classList.toggle('hidden', !isTrade);
   document.getElementById('tradeReminder')?.classList.toggle('hidden', !isTrade);
   document.getElementById('dateRow')?.classList.toggle('hidden', isTrade);
   document.getElementById('tradeStats')?.classList.toggle('hidden', !isTrade);
+  document.getElementById('tradeListTable')?.classList.toggle('hidden', !isTrade);
+  document.getElementById('recordList')?.classList.toggle('hidden', isTrade);
 
+  // 交易時隱藏標題/類別/數值
+  document.getElementById('generalFields')?.classList.toggle('hidden', isTrade);
+
+  // 類別欄
   const categoryInput = document.getElementById('category');
   if (categoryInput) {
     if (t.defaultCategory) {
-      categoryInput.value = t.defaultCategory;
+      categoryInput.value   = t.defaultCategory;
       categoryInput.readOnly = true;
     } else {
       categoryInput.readOnly = false;
-      categoryInput.value = '';
+      categoryInput.value    = '';
       categoryInput.placeholder = '輸入你想要的分類，例如：心情、工作…';
     }
   }
 
-  document.getElementById('title').placeholder   = t.titlePlaceholder;
-  document.getElementById('content').placeholder = t.contentPlaceholder;
-  document.getElementById('value').placeholder   = t.valuePlaceholder;
+  const titleInput   = document.getElementById('title');
+  const contentInput = document.getElementById('content');
+  const valueInput   = document.getElementById('value');
+  if (titleInput)   titleInput.placeholder   = t.titlePlaceholder;
+  if (contentInput) contentInput.placeholder = t.contentPlaceholder;
+  if (valueInput)   valueInput.placeholder   = t.valuePlaceholder;
 
   document.querySelectorAll('[data-template]').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.template === name);
@@ -340,22 +326,20 @@ function setTradeProduct(product) {
 
 /* ===================== 列表 ===================== */
 function loadRecords() {
+  if (!currentTemplate) return;
+
+  if (currentTemplate === 'trade') {
+    renderTradeEditTable();
+    return;
+  }
+
   const listEl = document.getElementById('recordList');
-  if (!listEl || !currentTemplate) return;
+  if (!listEl) return;
 
   const def = TEMPLATES[currentTemplate].defaultCategory;
   let filtered = [];
 
-  if (currentTemplate === 'trade') {
-    filtered = records.filter(r => {
-      if (r.category !== '交易') return false;
-      if (!r.tradeDetails || r.tradeDetails.length === 0) return true;
-      return r.tradeDetails.some(d =>
-        (d.product || '').toUpperCase() === currentTradeProduct.toUpperCase()
-      );
-    });
-    renderTradeStats(filtered);
-  } else if (def) {
+  if (def) {
     filtered = records.filter(r => r.category === def);
   } else {
     const inputCat = (document.getElementById('category')?.value || '').trim();
@@ -376,14 +360,146 @@ function loadRecords() {
     .map(recordToHTML).join('');
 }
 
-/* ===================== 勝率統計 ===================== */
-function renderTradeStats(filteredRecords) {
-  const rows = filteredRecords.flatMap(r =>
-    (r.tradeDetails || []).filter(d =>
-      (d.product || '').toUpperCase() === currentTradeProduct.toUpperCase()
-    )
-  );
+/* ===================== 交易可編輯大表格 ===================== */
+function renderTradeEditTable() {
+  const tbody = document.getElementById('tradeEditBody');
+  if (!tbody) return;
 
+  // 篩選當前品種的所有 tradeDetail 列，並附帶其所屬 record id
+  const rows = [];
+  records.forEach(r => {
+    if (r.category !== '交易') return;
+    (r.tradeDetails || []).forEach((d, dIdx) => {
+      if ((d.product || '').toUpperCase() === currentTradeProduct.toUpperCase()) {
+        rows.push({ recordId: r.id, detailIdx: dIdx, ...d });
+      }
+    });
+  });
+
+  // 更新統計
+  renderTradeStats(rows);
+
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;color:var(--text-hint);padding:20px;">這個品種目前沒有紀錄。</td></tr>`;
+    return;
+  }
+
+  // 由新到舊排序（用 recordId 近似時間）
+  rows.sort((a, b) => b.recordId - a.recordId);
+
+  tbody.innerHTML = '';
+  rows.forEach(row => {
+    const tr = document.createElement('tr');
+    tr.dataset.recordId  = row.recordId;
+    tr.dataset.detailIdx = row.detailIdx;
+
+    const result = row.result || '';
+    tr.innerHTML = `
+      <td><input type="text" class="edit-datetime" value="${escapeHTML(row.datetime || '')}"></td>
+      <td><input type="text" class="edit-timeframe" value="${escapeHTML(row.timeframe || '')}"></td>
+      <td><input type="text" class="edit-snr" value="${escapeHTML(row.snrType || '')}"></td>
+      <td><input type="text" class="edit-ema-order" value="${escapeHTML(row.emaOrder || '')}"></td>
+      <td><input type="text" class="edit-ema-fit" value="${escapeHTML(row.emaFit || '')}"></td>
+      <td><input type="text" class="edit-kbar" value="${escapeHTML(row.kbarPattern || '')}"></td>
+      <td><input type="text" class="edit-dxy" value="${escapeHTML(row.dxyDiv || '')}"></td>
+      <td>
+        <select class="edit-result ${result}">
+          <option value="">—</option>
+          <option value="win" ${result === 'win' ? 'selected' : ''}>✅ 勝</option>
+          <option value="lose" ${result === 'lose' ? 'selected' : ''}>❌ 敗</option>
+          <option value="draw" ${result === 'draw' ? 'selected' : ''}>➖ 平</option>
+        </select>
+      </td>
+      <td><input type="number" class="edit-pnl" value="${escapeHTML(String(row.pnl ?? ''))}" step="0.1"></td>
+      <td><button type="button" class="btn-danger delete-edit-row">刪除</button></td>
+    `;
+
+    // 離開欄位自動存
+    tr.querySelectorAll('input, select').forEach(input => {
+      input.addEventListener('change', () => saveEditRow(tr));
+      input.addEventListener('blur',   () => saveEditRow(tr));
+    });
+
+    // 結果欄顏色
+    const sel = tr.querySelector('.edit-result');
+    sel.addEventListener('change', () => { sel.className = `edit-result ${sel.value}`; });
+
+    // 刪除
+    tr.querySelector('.delete-edit-row').addEventListener('click', () => deleteDetailRow(tr));
+
+    tbody.appendChild(tr);
+  });
+}
+
+/** 從可編輯表格收集一列的值，存回 records 並寫 Drive */
+async function saveEditRow(tr) {
+  const recordId  = Number(tr.dataset.recordId);
+  const detailIdx = Number(tr.dataset.detailIdx);
+
+  const record = records.find(r => r.id === recordId);
+  if (!record || !record.tradeDetails[detailIdx]) return;
+
+  const get    = sel => tr.querySelector(sel)?.value.trim() || '';
+  const pnlRaw = tr.querySelector('.edit-pnl')?.value.trim() || '';
+
+  record.tradeDetails[detailIdx] = {
+    ...record.tradeDetails[detailIdx],
+    datetime:    get('.edit-datetime'),
+    timeframe:   get('.edit-timeframe'),
+    snrType:     get('.edit-snr'),
+    emaOrder:    get('.edit-ema-order'),
+    emaFit:      get('.edit-ema-fit'),
+    kbarPattern: get('.edit-kbar'),
+    dxyDiv:      get('.edit-dxy'),
+    result:      get('.edit-result'),
+    pnl:         pnlRaw !== '' ? parseFloat(pnlRaw) : null,
+  };
+  record.updatedAt = new Date().toISOString();
+
+  try {
+    await saveToDrive();
+    // 更新統計但不重繪表格（避免游標跳走）
+    const rows = [];
+    records.forEach(r => {
+      if (r.category !== '交易') return;
+      (r.tradeDetails || []).forEach((d) => {
+        if ((d.product || '').toUpperCase() === currentTradeProduct.toUpperCase()) rows.push(d);
+      });
+    });
+    renderTradeStats(rows);
+  } catch (err) {
+    console.error('自動存失敗：', err);
+  }
+}
+
+/** 刪除可編輯表格的某一列 */
+async function deleteDetailRow(tr) {
+  if (!confirm('確定要刪除這筆明細嗎？')) return;
+
+  const recordId  = Number(tr.dataset.recordId);
+  const detailIdx = Number(tr.dataset.detailIdx);
+
+  const record = records.find(r => r.id === recordId);
+  if (!record) return;
+
+  record.tradeDetails.splice(detailIdx, 1);
+
+  // 如果這筆 record 的 tradeDetails 全空了，整筆刪掉
+  if (record.tradeDetails.length === 0 && !record.content) {
+    const idx = records.findIndex(r => r.id === recordId);
+    if (idx !== -1) records.splice(idx, 1);
+  }
+
+  try {
+    await saveToDrive();
+    renderTradeEditTable();
+  } catch (err) {
+    console.error('刪除失敗：', err);
+  }
+}
+
+/* ===================== 勝率統計 ===================== */
+function renderTradeStats(rows) {
   const winCount  = rows.filter(d => d.result === 'win').length;
   const loseCount = rows.filter(d => d.result === 'lose').length;
   const decided   = winCount + loseCount;
@@ -392,7 +508,7 @@ function renderTradeStats(filteredRecords) {
   let totalPnl = null;
   rows.forEach(d => {
     const n = parsePnl(d.pnl);
-    if (n !== null) { totalPnl = (totalPnl ?? 0) + n; }
+    if (n !== null) totalPnl = (totalPnl ?? 0) + n;
   });
   const pnlText = totalPnl !== null
     ? (totalPnl >= 0 ? '+' : '') + totalPnl.toFixed(1) + ' 點' : '—';
@@ -404,70 +520,23 @@ function renderTradeStats(filteredRecords) {
   document.getElementById('statPnl').textContent   = `累計盈虧：${pnlText}`;
 }
 
-/* ===================== 卡片渲染 ===================== */
+/* ===================== 一般卡片渲染 ===================== */
 function recordToHTML(r) {
-  const isTrade  = r.category === '交易';
   const metaLine = r.date ? `日期：${escapeHTML(r.date)}` : '';
-
-  let tradeMini = '';
-  if (isTrade && Array.isArray(r.tradeDetails) && r.tradeDetails.length > 0) {
-    const rows = r.tradeDetails.filter(d =>
-      (d.product || '').toUpperCase() === currentTradeProduct.toUpperCase()
-    );
-    if (rows.length > 0) {
-      tradeMini = `
-        <div class="trade-mini">
-          <table>
-            <thead>
-              <tr>
-                <th>日期時間</th><th>商品</th><th>週期</th><th>SNR</th>
-                <th>EMA排列</th><th>EMA貼合</th><th>K棒型態</th><th>DXY背離</th>
-                <th>結果</th><th>盈虧（點）</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rows.map(d => {
-                const pnl      = parsePnl(d.pnl);
-                const pnlClass = pnl === null ? '' : pnl >= 0 ? 'pnl-positive' : 'pnl-negative';
-                const pnlText  = pnl === null ? '—' : (pnl >= 0 ? '+' : '') + pnl.toFixed(1);
-                const resultLabel = { win: '✅ 勝', lose: '❌ 敗', draw: '➖ 平' }[d.result] || '—';
-                return `
-                  <tr>
-                    <td>${escapeHTML(d.datetime||'')}</td>
-                    <td>${escapeHTML(d.product||'')}</td>
-                    <td>${escapeHTML(d.timeframe||'')}</td>
-                    <td>${escapeHTML(d.snrType||'')}</td>
-                    <td>${escapeHTML(d.emaOrder||'')}</td>
-                    <td>${escapeHTML(d.emaFit||'')}</td>
-                    <td>${escapeHTML(d.kbarPattern||'')}</td>
-                    <td>${escapeHTML(d.dxyDiv||'')}</td>
-                    <td><span class="result-badge ${d.result||''}">${resultLabel}</span></td>
-                    <td class="${pnlClass}">${pnlText}</td>
-                  </tr>
-                `;
-              }).join('')}
-            </tbody>
-          </table>
-        </div>
-      `;
-    }
-  }
-
   return `
     <div class="record-card">
       <div class="record-header">
         <div>
           <strong>${escapeHTML(r.title)}</strong>
-          ${r.category && !isTrade ? `<span class="record-category">（${escapeHTML(r.category)}）</span>` : ''}
+          ${r.category ? `<span class="record-category">（${escapeHTML(r.category)}）</span>` : ''}
         </div>
         <div class="record-actions">
           <button onclick="deleteRecord(${r.id})">刪除</button>
         </div>
       </div>
-      ${!isTrade && metaLine ? `<div class="record-meta">${metaLine}</div>` : ''}
+      ${metaLine ? `<div class="record-meta">${metaLine}</div>` : ''}
       <div class="record-content">${r.content ? escapeHTML(r.content) : ''}</div>
       ${r.value ? `<div class="record-value">數值：${escapeHTML(r.value)}</div>` : ''}
-      ${tradeMini}
     </div>
   `;
 }
@@ -476,26 +545,20 @@ function recordToHTML(r) {
 async function handleSubmit(e) {
   e.preventDefault();
 
-  const title    = document.getElementById('title')?.value.trim() || '';
-  let   category = document.getElementById('category')?.value.trim() || '';
+  const isTrade  = currentTemplate === 'trade';
+  const title    = isTrade ? (currentTradeProduct + ' 交易') : (document.getElementById('title')?.value.trim() || '');
+  const category = TEMPLATES[currentTemplate]?.defaultCategory || document.getElementById('category')?.value.trim() || '';
   const content  = document.getElementById('content')?.value.trim() || '';
-  const value    = document.getElementById('value')?.value.trim() || '';
-  const date     = currentTemplate === 'trade' ? '' : (document.getElementById('date')?.value || '');
+  const value    = isTrade ? '' : (document.getElementById('value')?.value.trim() || '');
+  const date     = isTrade ? '' : (document.getElementById('date')?.value || '');
 
-  if (!title) { alert('標題必填'); return; }
+  if (!isTrade && !title) { alert('標題必填'); return; }
 
-  if (TEMPLATES[currentTemplate]?.defaultCategory) {
-    category = TEMPLATES[currentTemplate].defaultCategory;
-  }
+  const tradeDetails = isTrade ? collectTradeDetails() : [];
+  if (isTrade && tradeDetails.length === 0) { alert('請至少填寫一列交易明細'); return; }
 
-  const tradeDetails = currentTemplate === 'trade' ? collectTradeDetails() : [];
   const now = new Date().toISOString();
-
-  const newRecord = {
-    id: Date.now(),
-    title, category, content, value, date, tradeDetails,
-    createdAt: now, updatedAt: now
-  };
+  const newRecord = { id: Date.now(), title, category, content, value, date, tradeDetails, createdAt: now, updatedAt: now };
 
   try {
     showStatus('儲存中…');
@@ -504,20 +567,20 @@ async function handleSubmit(e) {
     showStatus('已儲存！');
 
     document.getElementById('recordForm')?.reset();
-    if (TEMPLATES[currentTemplate]?.defaultCategory) {
+    if (!isTrade && TEMPLATES[currentTemplate]?.defaultCategory) {
       document.getElementById('category').value = TEMPLATES[currentTemplate].defaultCategory;
     }
-    if (currentTemplate === 'trade') { clearTradeTable(); addTradeRow(); }
+    if (isTrade) { clearTradeTable(); addTradeRow(); }
 
     loadRecords();
   } catch (err) {
-    records.pop(); // 儲存失敗就回滾
+    records.pop();
     console.error(err);
     showStatus('儲存失敗：' + err.message, true);
   }
 }
 
-/* ===================== 刪除紀錄 ===================== */
+/* ===================== 刪除紀錄（一般） ===================== */
 async function deleteRecord(id) {
   if (!confirm('確定要刪除這筆紀錄嗎？')) return;
 
@@ -526,12 +589,11 @@ async function deleteRecord(id) {
 
   const deleted = records.splice(idx, 1)[0];
   try {
-    showStatus('刪除中…');
     await saveToDrive();
     showStatus('已刪除');
     loadRecords();
   } catch (err) {
-    records.splice(idx, 0, deleted); // 回滾
+    records.splice(idx, 0, deleted);
     console.error(err);
     showStatus('刪除失敗：' + err.message, true);
   }
