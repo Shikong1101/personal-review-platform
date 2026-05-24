@@ -55,8 +55,10 @@ const TEMPLATES = {
 let currentTemplate     = null;
 let currentTradeProduct = 'GOLD';
 let accessToken         = null;
+let tokenExpiresAt      = 0;    // ms timestamp，token 到期時間
 let driveFileId         = null;
 let records             = [];
+let _tokenClient        = null; // 供 refreshToken() 使用
 
 /* ===================== 工具 ===================== */
 function showStatus(message, isError = false) {
@@ -92,18 +94,20 @@ function initGoogleAuth() {
 }
 
 function setupTokenClient() {
-  const tokenClient = google.accounts.oauth2.initTokenClient({
+  _tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: CLIENT_ID,
     scope: SCOPES,
     callback: async (tokenResponse) => {
       if (tokenResponse.error) { console.error('授權失敗：', tokenResponse); return; }
-      accessToken = tokenResponse.access_token;
+      accessToken    = tokenResponse.access_token;
+      // token 有效期通常 3600 秒，提前 5 分鐘視為過期
+      tokenExpiresAt = Date.now() + (tokenResponse.expires_in - 300) * 1000;
       onLoginSuccess();
     }
   });
 
   document.getElementById('loginBtnMain')?.addEventListener('click', () => {
-    tokenClient.requestAccessToken();
+    _tokenClient.requestAccessToken();
   });
 
   document.getElementById('logoutBtn')?.addEventListener('click', () => {
@@ -147,6 +151,29 @@ async function onLoginSuccess() {
   }
 }
 
+/* ===================== Token 自動刷新 ===================== */
+
+/** 確保 token 有效，過期就靜默刷新 */
+function ensureToken() {
+  return new Promise((resolve, reject) => {
+    if (accessToken && Date.now() < tokenExpiresAt) {
+      resolve(); // token 還有效
+      return;
+    }
+    // token 過期，靜默刷新（不彈視窗）
+    _tokenClient.requestAccessToken({ prompt: '' });
+    // callback 裡會更新 accessToken 和 tokenExpiresAt，等它完成
+    const wait = setInterval(() => {
+      if (accessToken && Date.now() < tokenExpiresAt) {
+        clearInterval(wait);
+        resolve();
+      }
+    }, 200);
+    // 5 秒超時
+    setTimeout(() => { clearInterval(wait); reject(new Error('Token 刷新逾時')); }, 5000);
+  });
+}
+
 /* ===================== Google Drive ===================== */
 async function findOrCreateFile() {
   const searchRes  = await fetch(
@@ -172,6 +199,7 @@ async function findOrCreateFile() {
 async function loadFromDrive() {
   try {
     showStatus('載入中…');
+    await ensureToken();
     await findOrCreateFile();
 
     const res = await fetch(
@@ -194,6 +222,7 @@ async function loadFromDrive() {
 }
 
 async function saveToDrive() {
+  await ensureToken();
   if (!driveFileId) await findOrCreateFile();
   const blob = new Blob([JSON.stringify(records, null, 2)], { type: 'application/json' });
   await fetch(
