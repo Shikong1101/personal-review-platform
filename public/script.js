@@ -94,28 +94,30 @@ function initGoogleAuth() {
 }
 
 function setupTokenClient() {
+  // 初次登入用的 client（會彈授權視窗）
   _tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: CLIENT_ID,
     scope: SCOPES,
     callback: async (tokenResponse) => {
       if (tokenResponse.error) { console.error('授權失敗：', tokenResponse); return; }
       accessToken    = tokenResponse.access_token;
-      // token 有效期通常 3600 秒，提前 5 分鐘視為過期
       tokenExpiresAt = Date.now() + (tokenResponse.expires_in - 300) * 1000;
-      onLoginSuccess();
+      await onLoginSuccess();
     }
   });
 
   document.getElementById('loginBtnMain')?.addEventListener('click', () => {
-    _tokenClient.requestAccessToken();
+    _tokenClient.requestAccessToken({ prompt: 'consent' });
   });
 
   document.getElementById('logoutBtn')?.addEventListener('click', () => {
     google.accounts.oauth2.revoke(accessToken, () => {
-      accessToken = null; driveFileId = null; records = [];
+      accessToken    = null;
+      tokenExpiresAt = 0;
+      driveFileId    = null;
+      records        = [];
       currentTemplate = null;
 
-      // 重置 UI 狀態
       document.getElementById('mainPanel')?.classList.add('hidden');
       document.querySelectorAll('[data-template]').forEach(btn => btn.classList.remove('active'));
       document.getElementById('templateHint').textContent = '請先點上方分類按鈕開始。';
@@ -146,33 +148,39 @@ async function onLoginSuccess() {
   } catch (_) {}
 
   await loadFromDrive();
-  if (currentTemplate) {
-    applyTemplate(currentTemplate);
-  }
+  if (currentTemplate) applyTemplate(currentTemplate);
 }
 
 /* ===================== Token 自動刷新 ===================== */
 
-/** 確保 token 有效，過期就靜默刷新 */
+/** 確保 token 有效，過期就靜默刷新後 resolve */
 function ensureToken() {
+  // token 還有效就直接過
+  if (accessToken && Date.now() < tokenExpiresAt) return Promise.resolve();
+
+  // 需要刷新：建立一個一次性 client 來靜默取得新 token
   return new Promise((resolve, reject) => {
-    if (accessToken && Date.now() < tokenExpiresAt) {
-      resolve(); // token 還有效
-      return;
-    }
-    // token 過期，靜默刷新（不彈視窗）
-    _tokenClient.requestAccessToken({ prompt: '' });
-    // callback 裡會更新 accessToken 和 tokenExpiresAt，等它完成
-    const wait = setInterval(() => {
-      if (accessToken && Date.now() < tokenExpiresAt) {
-        clearInterval(wait);
+    const refreshClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      callback: (tokenResponse) => {
+        if (tokenResponse.error) {
+          reject(new Error('Token 刷新失敗：' + tokenResponse.error));
+          return;
+        }
+        accessToken    = tokenResponse.access_token;
+        tokenExpiresAt = Date.now() + (tokenResponse.expires_in - 300) * 1000;
         resolve();
       }
-    }, 200);
-    // 5 秒超時
-    setTimeout(() => { clearInterval(wait); reject(new Error('Token 刷新逾時')); }, 5000);
+    });
+    // prompt: '' 表示靜默刷新，不彈視窗
+    refreshClient.requestAccessToken({ prompt: '' });
+
+    // 10 秒超時保護
+    setTimeout(() => reject(new Error('Token 刷新逾時')), 10000);
   });
 }
+
 
 /* ===================== Google Drive ===================== */
 async function findOrCreateFile() {
