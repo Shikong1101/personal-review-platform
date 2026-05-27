@@ -207,7 +207,9 @@ async function findOrCreateFile() {
 async function loadFromDrive() {
   try {
     showStatus('載入中…');
-    await ensureToken();
+    if (!accessToken || Date.now() >= tokenExpiresAt) {
+      await ensureToken();
+    }
     await findOrCreateFile();
 
     const res = await fetch(
@@ -230,7 +232,9 @@ async function loadFromDrive() {
 }
 
 async function saveToDrive() {
-  await ensureToken();
+  if (!accessToken || Date.now() >= tokenExpiresAt) {
+    await ensureToken();
+  }
   if (!driveFileId) await findOrCreateFile();
   const blob = new Blob([JSON.stringify(records, null, 2)], { type: 'application/json' });
   await fetch(
