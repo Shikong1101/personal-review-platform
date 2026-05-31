@@ -604,3 +604,40 @@ select.result-draw { color: var(--draw); font-weight: 700; }
 #tradeEditTable tbody tr:hover {
   background: #f8fafc;
 }
+ 
+/* ===================== 備註列 ===================== */
+.trade-note-row {
+  background: #fafbfc;
+}
+ 
+.trade-note-row td.note-cell {
+  padding: 4px 10px 8px;
+  border-bottom: 2px solid var(--border);
+}
+ 
+.trade-note-row input.trade-note,
+.trade-note-row input.edit-note {
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 4px;
+  padding: 5px 8px;
+  font-size: 12px;
+  width: 100%;
+  color: var(--text-sub);
+  font-style: italic;
+  transition: border-color .15s, background .15s;
+  min-width: unset;
+}
+ 
+.trade-note-row input:hover {
+  border-color: var(--border);
+  background: var(--surface);
+}
+ 
+.trade-note-row input:focus {
+  border-color: var(--accent);
+  background: var(--surface);
+  box-shadow: 0 0 0 2px rgba(37,99,235,.1);
+  outline: none;
+  font-style: normal;
+}

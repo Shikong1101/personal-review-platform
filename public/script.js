@@ -4,7 +4,7 @@
    ===================================================================== */
 
 const CLIENT_ID = '303723952901-b5aq1p5o5h7kk6ja5dgsc7556mukq75a.apps.googleusercontent.com';
-const SCOPES    = 'https://www.googleapis.com/auth/drive.file';
+const SCOPES    = 'https://www.googleapis.com/auth/drive.appdata';
 const FILE_NAME = 'records.json';
 
 /* ===================== 模板設定 ===================== */
@@ -185,7 +185,7 @@ function ensureToken() {
 /* ===================== Google Drive ===================== */
 async function findOrCreateFile() {
   const searchRes  = await fetch(
-    `https://www.googleapis.com/drive/v3/files?q=name='${FILE_NAME}' and trashed=false&fields=files(id,name)`,
+    `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='${FILE_NAME}'&fields=files(id,name)`,
     { headers: { Authorization: `Bearer ${accessToken}` } }
   );
   const searchData = await searchRes.json();
@@ -198,7 +198,7 @@ async function findOrCreateFile() {
   const createRes  = await fetch('https://www.googleapis.com/drive/v3/files', {
     method: 'POST',
     headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: FILE_NAME, mimeType: 'application/json' })
+    body: JSON.stringify({ name: FILE_NAME, parents: ['appDataFolder'] })
   });
   const createData = await createRes.json();
   driveFileId = createData.id;
@@ -254,6 +254,7 @@ function addTradeRow(data = {}) {
 
   const result = data.result || '';
   const tr = document.createElement('tr');
+  tr.className = 'trade-data-row';
   tr.innerHTML = `
     <td><input type="text" class="trade-datetime" value="${escapeHTML(data.datetime || '')}" placeholder="0326 2140"></td>
     <td><input type="text" class="trade-timeframe" value="${escapeHTML(data.timeframe || '')}" placeholder="M15 / H1"></td>
@@ -276,8 +277,21 @@ function addTradeRow(data = {}) {
 
   const select = tr.querySelector('.trade-result');
   select.addEventListener('change', () => { select.className = `trade-result ${select.value}`; });
-  tr.querySelector('.btn-danger').addEventListener('click', () => tr.remove());
+  tr.querySelector('.btn-danger').addEventListener('click', () => {
+    noteRow.remove();
+    tr.remove();
+  });
   tbody.appendChild(tr);
+
+  // 備註列（緊接在資料列後面）
+  const noteRow = document.createElement('tr');
+  noteRow.className = 'trade-note-row';
+  noteRow.innerHTML = `
+    <td colspan="10" class="note-cell">
+      <input type="text" class="trade-note" value="${escapeHTML(data.note || '')}" placeholder="備註（可留空）">
+    </td>
+  `;
+  tbody.appendChild(noteRow);
 }
 
 function clearTradeTable() {
@@ -289,9 +303,14 @@ function collectTradeDetails() {
   const tbody = document.querySelector('#tradeTable tbody');
   if (!tbody) return [];
 
-  return Array.from(tbody.querySelectorAll('tr')).map(tr => {
+  return Array.from(tbody.querySelectorAll('tr.trade-data-row')).map(tr => {
     const get    = sel => tr.querySelector(sel)?.value.trim() || '';
     const pnlRaw = tr.querySelector('.trade-pnl')?.value.trim() || '';
+    // 備註列是緊接在後面的那一列
+    const noteRow = tr.nextElementSibling;
+    const note = noteRow?.classList.contains('trade-note-row')
+      ? (noteRow.querySelector('.trade-note')?.value || '')
+      : '';
     const row = {
       datetime:    get('.trade-datetime'),
       product:     currentTradeProduct,
@@ -303,10 +322,11 @@ function collectTradeDetails() {
       dxyDiv:      get('.trade-dxy'),
       result:      get('.trade-result'),
       pnl:         pnlRaw !== '' ? parseFloat(pnlRaw) : null,
+      note:        note,
     };
     const vals = [row.datetime, row.timeframe, row.snrType, row.emaOrder,
                   row.emaFit, row.kbarPattern, row.dxyDiv, row.result];
-    if (vals.every(v => v === '') && row.pnl === null) return null;
+    if (vals.every(v => v === '') && row.pnl === null && !row.note) return null;
     return row;
   }).filter(Boolean);
 }
@@ -440,6 +460,7 @@ function renderTradeEditTable() {
   tbody.innerHTML = '';
   rows.forEach(row => {
     const tr = document.createElement('tr');
+    tr.className = 'trade-data-row';
     tr.dataset.recordId  = row.recordId;
     tr.dataset.detailIdx = row.detailIdx;
 
@@ -466,23 +487,36 @@ function renderTradeEditTable() {
 
     // 離開欄位自動存
     tr.querySelectorAll('input, select').forEach(input => {
-      input.addEventListener('change', () => saveEditRow(tr));
-      input.addEventListener('blur',   () => saveEditRow(tr));
+      input.addEventListener('change', () => saveEditRow(tr, noteRow));
+      input.addEventListener('blur',   () => saveEditRow(tr, noteRow));
     });
 
     // 結果欄顏色
     const sel = tr.querySelector('.edit-result');
     sel.addEventListener('change', () => { sel.className = `edit-result ${sel.value}`; });
 
-    // 刪除
-    tr.querySelector('.delete-edit-row').addEventListener('click', () => deleteDetailRow(tr));
+    // 刪除（同時刪備註列）
+    tr.querySelector('.delete-edit-row').addEventListener('click', () => deleteDetailRow(tr, noteRow));
 
     tbody.appendChild(tr);
+
+    // 備註列
+    const noteRow = document.createElement('tr');
+    noteRow.className = 'trade-note-row';
+    noteRow.dataset.recordId  = row.recordId;
+    noteRow.dataset.detailIdx = row.detailIdx;
+    noteRow.innerHTML = `
+      <td colspan="10" class="note-cell">
+        <input type="text" class="edit-note" value="${escapeHTML(row.note || '')}" placeholder="備註（可留空）">
+      </td>
+    `;
+    noteRow.querySelector('.edit-note').addEventListener('blur', () => saveEditRow(tr, noteRow));
+    tbody.appendChild(noteRow);
   });
 }
 
 /** 從可編輯表格收集一列的值，存回 records 並寫 Drive */
-async function saveEditRow(tr) {
+async function saveEditRow(tr, noteRow) {
   const recordId  = Number(tr.dataset.recordId);
   const detailIdx = Number(tr.dataset.detailIdx);
 
@@ -491,6 +525,7 @@ async function saveEditRow(tr) {
 
   const get    = sel => tr.querySelector(sel)?.value.trim() || '';
   const pnlRaw = tr.querySelector('.edit-pnl')?.value.trim() || '';
+  const note   = noteRow?.querySelector('.edit-note')?.value || '';
 
   record.tradeDetails[detailIdx] = {
     ...record.tradeDetails[detailIdx],
@@ -503,6 +538,7 @@ async function saveEditRow(tr) {
     dxyDiv:      get('.edit-dxy'),
     result:      get('.edit-result'),
     pnl:         pnlRaw !== '' ? parseFloat(pnlRaw) : null,
+    note:        note,
   };
   record.updatedAt = new Date().toISOString();
 
@@ -523,7 +559,7 @@ async function saveEditRow(tr) {
 }
 
 /** 刪除可編輯表格的某一列 */
-async function deleteDetailRow(tr) {
+async function deleteDetailRow(tr, noteRow) {
   if (!confirm('確定要刪除這筆明細嗎？')) return;
 
   const recordId  = Number(tr.dataset.recordId);
