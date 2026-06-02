@@ -4,7 +4,7 @@
    ===================================================================== */
 
 const CLIENT_ID = '303723952901-b5aq1p5o5h7kk6ja5dgsc7556mukq75a.apps.googleusercontent.com';
-const SCOPES    = 'https://www.googleapis.com/auth/drive.appdata';
+const SCOPES = 'https://www.googleapis.com/auth/drive.appdata';
 const FILE_NAME = 'records.json';
 
 /* ===================== 模板設定 ===================== */
@@ -195,7 +195,7 @@ function ensureToken() {
 /* ===================== Google Drive ===================== */
 async function findOrCreateFile() {
   const searchRes  = await fetch(
-    `https://www.googleapis.com/drive/v3/files?q=name='${FILE_NAME}' and trashed=false&fields=files(id,name)`,
+    `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='${FILE_NAME}'&fields=files(id,name)`,
     { headers: { Authorization: `Bearer ${accessToken}` } }
   );
   const searchData = await searchRes.json();
