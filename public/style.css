@@ -63,7 +63,7 @@ body {
   border: 1px solid var(--border);
   padding: 24px;
   margin: 16px auto;
-  max-width: 960px;
+  max-width: 1400px;
 }
 
 .section-title {
@@ -223,12 +223,12 @@ textarea {
 table {
   border-collapse: collapse;
   width: 100%;
-  min-width: 900px;
+  min-width: 700px;
 }
 
 th, td {
   border-bottom: 1px solid var(--border);
-  padding: 8px 10px;
+  padding: 8px 8px;
   vertical-align: middle;
   white-space: nowrap;
 }
@@ -571,8 +571,65 @@ select.result-draw { color: var(--draw); font-weight: 700; }
 /* appContent 的 padding */
 #appContent {
   padding: 0 16px 40px;
-  max-width: 960px;
+  max-width: 1400px;
   margin: 0 auto;
+}
+
+/* 圖表區塊 */
+.chart-section {
+  margin-top: 20px;
+}
+
+.chart-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-sub);
+  margin-bottom: 10px;
+}
+
+.bar-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  height: 120px;
+  padding: 0 4px;
+}
+
+.bar-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+
+.bar-wrap {
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  height: 90px;
+}
+
+.bar {
+  width: 100%;
+  border-radius: 4px 4px 0 0;
+  min-height: 4px;
+  transition: height .3s ease;
+}
+
+.bar.win  { background: var(--win); }
+.bar.lose { background: var(--lose); }
+.bar.draw { background: var(--draw); }
+
+.bar-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-sub);
+}
+
+.bar-value {
+  font-size: 13px;
+  font-weight: 700;
 }
 /* ===================== 可編輯大表格 ===================== */
 #tradeEditTable td input,

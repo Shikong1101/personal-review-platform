@@ -142,6 +142,29 @@
             <span class="stat-item stat-pnl" id="statPnl">累計盈虧：—</span>
           </div>
         </div>
+
+        <!-- 長條圖（只有 trade 顯示） -->
+        <div id="tradeChart" class="chart-section hidden">
+          <div class="chart-title">勝敗統計</div>
+          <div class="bar-chart">
+            <div class="bar-group">
+              <div class="bar-wrap"><div class="bar win" id="barWin"></div></div>
+              <div class="bar-value" id="barWinVal" style="color:var(--win)">0</div>
+              <div class="bar-label">勝</div>
+            </div>
+            <div class="bar-group">
+              <div class="bar-wrap"><div class="bar lose" id="barLose"></div></div>
+              <div class="bar-value" id="barLoseVal" style="color:var(--lose)">0</div>
+              <div class="bar-label">敗</div>
+            </div>
+            <div class="bar-group">
+              <div class="bar-wrap"><div class="bar draw" id="barDraw"></div></div>
+              <div class="bar-value" id="barDrawVal" style="color:var(--draw)">0</div>
+              <div class="bar-label">平</div>
+            </div>
+          </div>
+        </div>
+
         <!-- 交易：可編輯大表格 -->
         <div id="tradeListTable" class="hidden">
           <div class="trade-table-wrap">
@@ -149,14 +172,14 @@
               <thead>
                 <tr>
                   <th>日期時間</th>
-                  <th>進場週期</th>
-                  <th>SNR 類型</th>
-                  <th>EMA 排列</th>
-                  <th>EMA 貼合</th>
+                  <th>週期</th>
+                  <th>SNR</th>
+                  <th>EMA排列</th>
+                  <th>EMA貼合</th>
                   <th>K棒型態</th>
-                  <th>DXY 背離</th>
+                  <th>DXY背離</th>
                   <th>結果</th>
-                  <th>盈虧（點）</th>
+                  <th>盈虧(點)</th>
                   <th>操作</th>
                 </tr>
               </thead>

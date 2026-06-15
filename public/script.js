@@ -356,6 +356,7 @@ function applyTemplate(name) {
   document.getElementById('dateRow')?.classList.toggle('hidden', isTrade);
   document.getElementById('tradeStats')?.classList.toggle('hidden', !isTrade);
   document.getElementById('tradeListTable')?.classList.toggle('hidden', !isTrade);
+  document.getElementById('tradeChart')?.classList.toggle('hidden', !isTrade);
   document.getElementById('recordList')?.classList.toggle('hidden', isTrade);
 
   // 交易時隱藏標題/類別/數值
@@ -593,10 +594,11 @@ async function deleteDetailRow(tr, noteRow) {
   }
 }
 
-/* ===================== 勝率統計 ===================== */
+/* ===================== 勝率統計 + 長條圖 ===================== */
 function renderTradeStats(rows) {
   const winCount  = rows.filter(d => d.result === 'win').length;
   const loseCount = rows.filter(d => d.result === 'lose').length;
+  const drawCount = rows.filter(d => d.result === 'draw').length;
   const decided   = winCount + loseCount;
   const rate      = decided > 0 ? ((winCount / decided) * 100).toFixed(1) + '%' : '—';
 
@@ -613,6 +615,21 @@ function renderTradeStats(rows) {
   document.getElementById('statLose').textContent  = `敗：${loseCount}`;
   document.getElementById('statRate').textContent  = `勝率：${rate}`;
   document.getElementById('statPnl').textContent   = `累計盈虧：${pnlText}`;
+
+  // 長條圖
+  const maxVal = Math.max(winCount, loseCount, drawCount, 1);
+  const barH   = 90; // px，對應 CSS 的 bar-wrap 高度
+
+  const setBar = (barId, valId, count) => {
+    const bar = document.getElementById(barId);
+    const val = document.getElementById(valId);
+    if (bar) bar.style.height = `${Math.round((count / maxVal) * barH)}px`;
+    if (val) val.textContent = count;
+  };
+
+  setBar('barWin',  'barWinVal',  winCount);
+  setBar('barLose', 'barLoseVal', loseCount);
+  setBar('barDraw', 'barDrawVal', drawCount);
 }
 
 /* ===================== 一般卡片渲染 ===================== */
